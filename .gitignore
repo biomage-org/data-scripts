@@ -1,0 +1,6 @@
+data/
+user_scripts/
+.Rhistory
+.Rproj.user
+*.Rproj
+.DS_Store
