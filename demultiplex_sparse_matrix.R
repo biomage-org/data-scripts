@@ -5,6 +5,7 @@
 # load required package
   library("DropletUtils")
 # comment
+# comment 2
 # look at data structure
   str(data)
 # we can see that this is a dgCMatrix with gene symbols as rownames and cell barcodes as colnames
