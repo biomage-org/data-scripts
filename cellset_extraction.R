@@ -79,6 +79,29 @@ get_cellset_cell_ids <-
       # Added it bc I think I have seen cellset objects with two elements here
       stop("There are no scratchpad cell sets in this object")
     }
-    
+
     as.numeric(cellsets[["cellSets"]][[cellset_type]][["children"]][[cellset_number]][["cellIds"]])
   }
+
+
+#' Subset seurat object given cell_ids
+#'
+#' Cell Ids are an internal representation used by Cellenics. They are stored in
+#' the `meta.data` slot of the Seurat object. This function subsets a Seurat
+#' object given a vector of cell ids.
+#'
+#' @param processed_matrix Seurat rds object downloaded from S3
+#' @param cell_ids numeric vector of cell ids to extract
+#'
+#' @return subsetted Seurat object
+#' @export
+#'
+subset_seurat_cell_ids<- function(processed_matrix, cell_ids) {
+
+  barcodes_to_keep <- processed_matrix@meta.data %>%
+    filter(cells_id %in% cell_ids) %>% # this is not a typo
+    rownames()
+
+  extract <- processed_matrix[, barcodes_to_keep]
+
+}
