@@ -3,7 +3,7 @@ library(Seurat)
 
 
 #' Download cell sets file
-#' 
+#'
 #' Downloads cellset file from S3, given an experiment ID.
 #' Uses aws-cli to do so, which must be configured and working.
 #'
@@ -17,7 +17,7 @@ download_cellset_file <- function(experiment_id) {
           "cell-sets-production",
           experiment_id,
           sep = "/")
-  
+
   local_path <- paste0(experiment_id, "_cellset.json")
   args <- c("s3", "cp", remote_path, local_path)
   system2("aws", args)
@@ -25,7 +25,7 @@ download_cellset_file <- function(experiment_id) {
 
 
 #' Download processed matrix
-#' 
+#'
 #' Downloads processed matrix RDS file from S3, given an experiment ID.
 #' Uses aws-cli to do so, which must be configured and working.
 #'
@@ -50,7 +50,7 @@ download_processed_matrix <- function(experiment_id) {
 #'
 #' Extracts the cell ids of cells that belong to a cellset from the cellset object as
 #' a numeric vector.
-#' 
+#'
 #' The `cellset_type` argument is an int that specifies the cellset class:
 #'
 #' \itemize{
@@ -59,9 +59,9 @@ download_processed_matrix <- function(experiment_id) {
 #'   \item `3 = samples`
 #'   \item `>= 4 = metadata tracks`
 #'}
-#' 
-#' The `cellset_number` refers to a particular cellset within a class. 
-#' 
+#'
+#' The `cellset_number` refers to a particular cellset within a class.
+#'
 #' So, to extract the third scratchpad cellset, we would set \code{cellset_type = 2},
 #' \code{cellset_number = 3}.
 #'
