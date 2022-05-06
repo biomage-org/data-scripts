@@ -39,8 +39,8 @@ download_processed_matrix <- function(experiment_id) {
                  experiment_id,
                  sep = "/"),
            "/")
-  local_path <- paste0(experiment_id, "_r.rds")
-  
+  local_path <- experiment_id
+
   args <- c("s3", "cp", remote_path, local_path, "--recursive")
   system2("aws", args)
 }
