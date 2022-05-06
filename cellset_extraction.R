@@ -2,6 +2,15 @@ library(jsonlite)
 library(Seurat)
 
 
+#' Download cell sets file
+#' 
+#' Downloads cellset file from S3, given an experiment ID.
+#' Uses aws-cli to do so, which must be configured and working.
+#'
+#' @param experiment_id character
+#'
+#' @return NULL
+#' @export
 download_cellset_file <- function(experiment_id) {
   remote_path <-
     paste("s3:/",
@@ -15,6 +24,15 @@ download_cellset_file <- function(experiment_id) {
 }
 
 
+#' Download processed matrix
+#' 
+#' Downloads processed matrix RDS file from S3, given an experiment ID.
+#' Uses aws-cli to do so, which must be configured and working.
+#'
+#' @param experiment_id character
+#'
+#' @return NULL
+#' @export
 download_processed_matrix <- function(experiment_id) {
   remote_path <-
     paste0(paste("s3:/", "processed-matrix-production",
