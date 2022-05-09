@@ -88,7 +88,7 @@ filter_empty_drops <- function() {
 
 #Requires df with columns rank, umis and fdr
 create_knee_plot <- function(df){
-    plot <- ggplot(unique_bcrank, aes(x = rank, y = umis, color = fdr)) +
+      plot <- ggplot(df, aes(x = rank, y = umis, color = fdr)) +
         geom_point() +
         scale_y_continuous(trans = "log10") +
         scale_x_continuous(trans = "log10")
