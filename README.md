@@ -12,3 +12,7 @@ Usage:
 4. Open data-scripts.rproj and load renv dependencies renv::restore()
 5. Use the filter_empty_drops function to filter all samples in the input dir
 
+# hto_demultiplex.R
+Usage:
+1. Follow usage instructions for filter_empty_drops.R to filter all samples in the input dir
+2. Use the hto_demux function to demultiplex all samples in the out dir, which were previously filtered by the filter_empty_drops function
