@@ -40,28 +40,6 @@ get_cellset_cell_ids <-
 }
 
 
-#' Subset seurat object given cell_ids
-#'
-#' Cell Ids are an internal representation used by Cellenics. They are stored in
-#' the `meta.data` slot of the Seurat object. This function subsets a Seurat
-#' object given a vector of cell ids.
-#'
-#' @param processed_matrix Seurat rds object downloaded from S3
-#' @param cell_ids numeric vector of cell ids to extract
-#'
-#' @return subsetted Seurat object
-#' @export
-#'
-subset_seurat_cell_ids <- function(processed_matrix, cell_ids) {
-  barcodes_to_keep <- processed_matrix@meta.data %>%
-    dplyr::filter(cells_id %in% cell_ids) %>% # this is not a typo
-    rownames()
-
-  processed_matrix[, barcodes_to_keep]
-}
-
-
-
 #' extract cellset from a seurat object
 #'
 #' Given experiment ID and cellset identifiers (type and number), this function
@@ -86,6 +64,5 @@ extract_cellset <- function(experiment_id, cellset_type, cellset_number) {
 
   # do stuff
   cell_ids <- get_cellset_cell_ids(cellsets, cellset_type, cellset_number)
-  subset_seurat_cell_ids(processed_matrix, cell_ids)
+  pipeline::subset_ids(processed_matrix, cell_ids)
 }
-
