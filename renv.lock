@@ -900,10 +900,15 @@
     "pipeline": {
       "Package": "pipeline",
       "Version": "0.0.0.9000",
-      "Source": "Local",
-      "RemoteType": "local",
-      "RemoteUrl": "/Users/olivergibson/oliver/biomage/pipeline/pipeline-runner",
-      "Hash": "379b3d353d993dad194f33c757122985"
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "pipeline",
+      "RemoteUsername": "hms-dbmi-cellenics",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "09990887c01e75bbd2566264c93c682373940c7a",
+      "RemoteSubdir": "pipeline-runner",
+      "Hash": "8a90b8b6652ab182d251b9858409651d"
     },
     "pkgconfig": {
       "Package": "pkgconfig",
