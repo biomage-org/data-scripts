@@ -12,8 +12,12 @@ Usage:
 4. Open data-scripts.rproj and load renv dependencies renv::restore()
 5. Use the filter_empty_drops function to filter all samples in the input dir
 
-# cellset extraction
+# hto_demultiplex.R
+Usage:
+1. Follow usage instructions for filter_empty_drops.R to filter all samples in the input dir
+2. Use the hto_demux function to demultiplex all samples in the out dir, which were previously filtered by the filter_empty_drops function
 
+# cellset extraction
 To extract cellsets, you only need an experiment ID, and the index of the cellset
 in the cellsets file. The cellset index is composed from the cellset class, as listed
 below, and the cellset number inside each class (with 1-based indexing).
@@ -29,3 +33,4 @@ with `jsonlite::read_json` and explore it with the list viewer.
 
 After getting the positions, The function `extract_cellset` will do everything
 automagically, returning a subsetted seurat object.
+
