@@ -9,9 +9,9 @@ config <- list(input = list(type = "10x"), samples = sampleIds)
 
 # Function load_user_files_multi doesn't take only the "Gene Expression" slot, but also the "Antibody Capture" slot (commented lines 76-81 of gem2s-2-load_user_files.R)
 # Load unfiltered data
-data_unf <- load_user_files_multi(list(), list(), list(config = config), "./input")
+data_unf <- read_10x_with_ac(config, "./input")
 # Load filtered data
-data_fil <- load_user_files_multi(list(), list(), list(config = config), "./out")
+data_fil <- read_10x_with_ac(config, "./out")
 
 annot <- data_fil$output$annot
 counts_list_unf <- data_unf$output$counts_list
