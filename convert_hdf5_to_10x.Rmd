@@ -1,6 +1,5 @@
 ---
 title: "Convert hdf5 files to features/barcodes/matrix"
-author: "author"
 output:
   html_document:
     df_print: paged
