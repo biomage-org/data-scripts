@@ -18,6 +18,10 @@ editor_options:
 
 # converting standard h5 to features/barcodes/matrix
 
+Standard 10x hdf5 files can be processed using functionality already implemented
+in the `Seurat` package. It should work out of the box for cellranger output. 
+If this were to fail, refer to the Non-Standard HDF5 file section of this document.
+
 ## libraries
 
 We need to have Seurat and DropletUtils installed. 
@@ -30,7 +34,8 @@ library(DropletUtils)
 
 ## processing
 
-List the h5 files. Set the path to the folder that contains the h5 files.
+Set the data_dir to the folder that contains the h5 files. After that, we create
+a list of all H5 files in the directory, which will be converted.
 
 ```{r}
 data_dir <- "./"
@@ -38,16 +43,14 @@ setwd(data_dir)
 h5_files <- list.files(data_dir, pattern = "*h5$")
 ```
 
-Create an output directory
+Create an output directory, to store the converted files.
 
 ```{r}
 output_dir <- "out"
 dir.create(output_dir)
 ```
 
-
-
-Convert them. The sample_name is going to be the folder name for each sample,
+Convert the H5 files. The sample_name is going to be the folder name for each sample,
 feel free to edit as desired.
 
 ```{r}
@@ -89,13 +92,9 @@ library(DropletUtils)
 
 ## define parameters
 
-Define the path to the required h5. 
-
-```{r}
-filename <- "~/Downloads/GSM4453619_Control1_HPAP022_molecule_info.h5"
-```
-
-Define slot names, with manual inspection.
+Define slot names, by inspecting the H5 files to be processed, using either `hdf5r`
+or HDFView. The slot names are the paths inside the H5 file that point to different
+pieces of information required to convert the files, such as the data, or the gene names.
 
 Lengths of the counts, genes and barcodes slots must be the same. These three are
 used to build the sparse count matrix.
@@ -127,8 +126,8 @@ gene_names_slot <- "gene_names"
 Use this section to bulk process h5 files. If a deeper understanding of the workings
 is required, refer to the appendix section at the end of the document.
 
-Set the data_dir to the folder that contains the h5 files.
-List the h5 files. Set the path to the folder that contains the h5 files.
+Set the data_dir to the folder that contains the h5 files. After that, we create
+a list of all H5 files in the directory, which will be converted.
 
 ```{r}
 data_dir <- "./"
@@ -136,7 +135,7 @@ setwd(data_dir)
 h5_files <- list.files(data_dir, pattern = "*h5$")
 ```
 
-Create an output directory
+Create an output directory, to store the converted files.
 
 ```{r}
 output_dir <- file.path(data_dir, "out")
@@ -144,6 +143,8 @@ dir.create(output_dir)
 ```
 
 ### required functions
+
+These are the functions that do the work.
 
 ```{r}
 extract_slots <- function(h5_path) {
@@ -190,8 +191,8 @@ build_sparse_matrix <- function(slots) {
 
 ### processing
 
-Convert them. The sample_name is going to be the folder name for each sample,
-feel free to edit as desired.
+Convert all the h5 files detected and stored in the `h5_files` variable.
+The sample_name is going to be the folder name for each sample, feel free to edit as desired.
 
 ```{r}
 for (file in h5_files) {
@@ -222,6 +223,11 @@ for (file in h5_files) {
 
 ## Appendix - inner workings
 
+This section describes in more detail the steps and decisions made when processing a 
+non standard H5 file.
+
+### setup
+
 Open the h5 file in read mode, and extract all required slots to vectors. The `[]`
 ensures we're getting a vector.
 
@@ -246,8 +252,13 @@ ensures identical barcodes get the same rank.
 r_barcodes <- data.table::frankv(barcodes, ties.method = "dense")
 ```
 
+### matrix creation
+
 Create sparse matrix. Care should be taken with indexing. Depending on the H5 file
-indices might be 1 or 0 based. One way is to check for 
+indices might be 1 or 0 based. One way is to check for the min of the genes and 
+barcodes vectors (which are the indices for the sparse matrix.). If one of them 
+contains a zero, then indexing is zero based (the other way around is not necessarily
+true, but the worst that can happen is not having an empty row and column.)
 
 ```{r}
 
@@ -264,13 +275,14 @@ sparse_matrix <-
 
 ```
 
-Write the counts to file 
+Write the counts to file, we convert the barcodes to a string, because barcodes
+are usually nucleotide sequences stored as strings.
 
 ```{r}
 DropletUtils::write10xCounts(
   path = "./out",
   x = sparse_matrix,
-  barcodes = paste0("cell_",  r_barcodes),
+  barcodes = paste0("cell_",  colnames(sparse_matrix)),
   gene.id = gene_ids,
   gene.symbol = gene_names,
   version = "3"
