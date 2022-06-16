@@ -14,11 +14,11 @@ setwd(fold_path)
 # convert kb count output to 10x
 for (fold in list.files(pattern="*_kbcount_output")) {
   base_path <- file.path(fold_path, fold)
-  matrix_path <- file.path(base_path "counts_unfiltered", "cells_x_genes.mtx")
+  matrix_path <- file.path(base_path, "counts_unfiltered", "cells_x_genes.mtx")
   genes_path <- file.path(base_path, "/counts_unfiltered/cells_x_genes.genes.txt")
   barcodes_path <- file.path(base_path, "/counts_unfiltered/cells_x_genes.barcodes.txt")
 
-  raw_mtx <- as(t(readMM(matrix_path, "CsparseMatrix"))) # load mtx and transpose it
+  raw_mtx <- as(t(readMM(matrix_path)), "CsparseMatrix") # load mtx and transpose it
   rownames(raw_mtx) <- read.delim(genes_path, header = F)[,1] # attach genes
   colnames(raw_mtx) <- read.delim(barcodes_path, header = F)[,1] # attach barcodes
 
