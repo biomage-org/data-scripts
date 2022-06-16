@@ -1,0 +1,83 @@
+---
+title: "Appendix to the conversion of non-standard h5 files."
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+# Appendix - inner workings
+
+This section describes in more detail the steps and decisions made when processing a 
+non standard H5 file.
+
+## setup
+
+Open the h5 file in read mode, and extract all required slots to vectors. The `[]`
+ensures we're getting a vector.
+
+```{r}
+
+h5 <- H5File$new(filename, mode = "r")
+
+counts <- h5[[counts_slot]][]
+genes <- h5[[genes_slot]][]
+barcodes <- h5[[barcodes_slot]][]
+
+gene_ids <- h5[[gene_ids_slot]][]
+gene_names <- h5[[gene_names_slot]][]
+
+```
+
+Barcode indices might be too big, which breaks the creation of the sparse matrix.
+So we rank them, to convert to a smaller representation. The `ties.method = "dense"` argument
+ensures identical barcodes get the same rank.
+
+```{r}
+r_barcodes <- data.table::frankv(barcodes, ties.method = "dense")
+```
+
+## matrix creation
+
+Create sparse matrix. Care should be taken with indexing. Depending on the H5 file
+indices might be 1 or 0 based. One way is to check for the min of the genes and 
+barcodes vectors (which are the indices for the sparse matrix.). If one of them 
+contains a zero, then indexing is zero based (the other way around is not necessarily
+true, but the worst that can happen is not having an empty row and column.)
+
+```{r}
+
+if(min(genes) == 0 || min(barcodes) == 0) {index1 <- F} else {index1 <- T}
+
+sparse_matrix <-
+  sparseMatrix(
+    i = genes,
+    j = r_barcodes,
+    x = counts,
+    repr = "C",
+    index1 = index1
+  )
+
+```
+
+Write the counts to file, we convert the barcodes to a string, because barcodes
+are usually nucleotide sequences stored as strings.
+
+```{r}
+DropletUtils::write10xCounts(
+  path = "./out",
+  x = sparse_matrix,
+  barcodes = paste0("cell_",  colnames(sparse_matrix)),
+  gene.id = gene_ids,
+  gene.symbol = gene_names,
+  version = "3"
+)
+```

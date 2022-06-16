@@ -1,0 +1,223 @@
+---
+title: "Convert hdf5 files to features/barcodes/matrix"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+
+# converting standard h5 to features/barcodes/matrix
+
+Standard 10x hdf5 files can be processed using functionality already implemented
+in the `Seurat` package. It should work out of the box for cellranger output. 
+If this were to fail, refer to the Non-Standard HDF5 file section of this document.
+
+## libraries
+
+We need to have Seurat and DropletUtils installed. 
+Seurat can be installed from CRAN, and [DropletUtils is available on Bioconductor](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html)
+
+```{r}
+library(Seurat)
+library(DropletUtils)
+```
+
+## processing
+
+Set the data_dir to the folder that contains the h5 files. After that, we create
+a list of all H5 files in the directory, which will be converted.
+
+```{r}
+data_dir <- "./"
+setwd(data_dir)
+h5_files <- list.files(data_dir, pattern = "*h5$")
+```
+
+Create an output directory, to store the converted files.
+
+```{r}
+output_dir <- "out"
+dir.create(output_dir)
+```
+
+Convert the H5 files. The sample_name is going to be the folder name for each sample,
+feel free to edit as desired.
+
+```{r}
+
+for (file in h5_files) {
+  
+  # make sample names, removing .h5
+  sample_name <- sub("\\.h5$", "", basename(file))
+  sample_path <- file.path(output_dir, sample_name)
+
+  # to show progress
+  print(sample_name)
+  
+  # load the count matrices
+  gene_names <- rownames(Seurat::Read10X_h5(file))
+  counts <- Seurat::Read10X_h5(file, use.names = F)
+  
+  # convert
+  DropletUtils::write10xCounts(sample_path, counts, version = "3", gene.symbol = gene_names)
+}
+```
+
+# Processing non-standard H5 files
+
+Non-standard h5's should be treated with care. In particular, the slots with the counts,
+genes and barcodes indices could have different names and be located anywhere inside
+the H5. Which means manual inspection is required. You can inspect H5 files 
+using the `hdf5r` R package, or using the GUI program [HDFView](https://www.hdfgroup.org/downloads/hdfview/).
+
+## libraries
+
+Need to install `hdf5r`, `data.table` and `Matrix` packages. 
+
+```{r}
+library(hdf5r)
+library(Matrix)
+library(DropletUtils)
+```
+
+## define parameters
+
+Define slot names, by inspecting the H5 files to be processed, using either `hdf5r`
+or HDFView. The slot names are the paths inside the H5 file that point to different
+pieces of information required to convert the files, such as the data, or the gene names.
+
+These slot names MUST be changed before processing. They are specific to each non-standard h5 file.
+
+Lengths of the counts, genes and barcodes slots must be the same. These three are
+used to build the sparse count matrix.
+
+- `counts_slot` should point to the actual data.
+- `genes_slot` should point to an integer vector with row indices
+- `barcodes_slot` should point to an integer vector with column indices
+
+```{r}
+counts_slot <- "umi_corrected_reads"
+genes_slot <- "gene"
+barcodes_slot <- "barcode"
+```
+
+The gene_names and ids should be the same length and most likely smaller than the
+counts/genes/barcodes slots. These are the gene labels, used when creating the 
+10x files.
+
+Like the previous slots, these MUST be renamed according to the structure of the specific h5 file being processed.
+
+- `gene_ids_slot` should point to a character vector of gene ids.
+- `gene_names_slot` should point to a character vector of gene symbols
+
+```{r}
+gene_ids_slot <- "gene_ids"
+gene_names_slot <- "gene_names"
+```
+
+## Bulk processing
+
+Use this section to bulk process h5 files. If a deeper understanding of the workings
+is required, refer to the appendix section at the end of the document.
+
+Set the data_dir to the folder that contains the h5 files. After that, we create
+a list of all H5 files in the directory, which will be converted.
+
+```{r}
+data_dir <- "./"
+setwd(data_dir)
+h5_files <- list.files(data_dir, pattern = "*h5$")
+```
+
+Create an output directory, to store the converted files.
+
+```{r}
+output_dir <- file.path(data_dir, "out")
+dir.create(output_dir)
+```
+
+### required functions
+
+These are the functions that do the work.
+
+```{r}
+extract_slots <- function(h5_path) {
+  h5 <- H5File$new(h5_path, mode = "r")
+  
+  counts <- h5[[counts_slot]][]
+  genes <- h5[[genes_slot]][]
+  barcodes <- h5[[barcodes_slot]][]
+  
+  gene_ids <- h5[[gene_ids_slot]][]
+  gene_names <- h5[[gene_names_slot]][]
+  
+  r_barcodes <- data.table::frankv(barcodes, ties.method = "dense")
+  
+  if(min(genes) == 0 || min(barcodes) == 0) {index1 <- F} else {index1 <- T}
+  
+  return(
+    list(
+      "counts" = counts,
+      "genes" = genes,
+      "barcodes" = barcodes,
+      "r_barcodes" = r_barcodes,
+      "gene_ids" = gene_ids,
+      "gene_names" = gene_names,
+      "index1" = index1
+    )
+  )
+}
+
+build_sparse_matrix <- function(slots) {
+  sparse_matrix <-
+    sparseMatrix(
+      i = slots[["genes"]],
+      j = slots[["r_barcodes"]],
+      x = slots[["counts"]],
+      repr = "C",
+      index1 = slots[["index1"]]
+    )
+  
+  return(sparse_matrix)
+}
+
+```
+
+### processing
+
+Convert all the h5 files detected and stored in the `h5_files` variable.
+The sample_name is going to be the folder name for each sample, feel free to edit as desired.
+
+```{r}
+for (file in h5_files) {
+  print(file)
+  
+  # make sample names, removing .h5
+  sample_name <- sub("\\.h5$", "", basename(file))
+  sample_path <- file.path(output_dir, sample_name)
+
+  # to show progress
+  print(sample_name)
+  
+  # read h5 files and build sparse matrix
+  slots <- extract_slots(file)
+  counts <- build_sparse_matrix(slots)
+  
+  # write to files.
+  DropletUtils::write10xCounts(sample_path,
+                               counts,
+                               barcodes = paste0("cell_", unique(slots[["barcodes"]])),
+                               gene.id = slots[["gene_ids"]],
+                               gene.symbol = slots[["gene_names"]],
+                               version = "3")
+}
+```
