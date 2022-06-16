@@ -114,6 +114,8 @@ The gene_names and ids should be the same length and most likely smaller than th
 counts/genes/barcodes slots. These are the gene labels, used when creating the 
 10x files.
 
+Like the previous slots, these MUST be renamed according to the structure of the specific h5 file being processed.
+
 - `gene_ids_slot` should point to a character vector of gene ids.
 - `gene_names_slot` should point to a character vector of gene symbols
 
