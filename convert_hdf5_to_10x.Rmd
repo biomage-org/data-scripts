@@ -95,6 +95,8 @@ Define slot names, by inspecting the H5 files to be processed, using either `hdf
 or HDFView. The slot names are the paths inside the H5 file that point to different
 pieces of information required to convert the files, such as the data, or the gene names.
 
+These slot names MUST be changed before processing. They are specific to each non-standard h5 file.
+
 Lengths of the counts, genes and barcodes slots must be the same. These three are
 used to build the sparse count matrix.
 
@@ -111,6 +113,8 @@ barcodes_slot <- "barcode"
 The gene_names and ids should be the same length and most likely smaller than the
 counts/genes/barcodes slots. These are the gene labels, used when creating the 
 10x files.
+
+Like the previous slots, these MUST be renamed according to the structure of the specific h5 file being processed.
 
 - `gene_ids_slot` should point to a character vector of gene ids.
 - `gene_names_slot` should point to a character vector of gene symbols
