@@ -1,5 +1,6 @@
 library(Seurat)
 library(dplyr)
+library(jsonlite)
 source("utils.R")
 
 #' Extract cell ids of cells in a cellset
@@ -39,6 +40,31 @@ get_cellset_cell_ids <-
     as.numeric(cellsets[["cellSets"]][[cellset_type]][["children"]][[cellset_number]][["cellIds"]])
 }
 
+#' Get the cell_ids for many cellsets
+#'
+#' The cellset coordinates follow the convention shown in get_cellset_cell_ids,
+#' so if you want the cell_ids of louvain clusters 13 and 14, you should input
+#' list(c(1, 13), c(1,14)).
+#'
+#' @param cellsets list parsed json cellset object
+#' @param cellset_coordinates list of cellset coordinates
+#'
+#' @return int vector of cell_ids in cellsets
+#' @export
+#'
+get_many_cellset_cell_ids <- function(cellsets, cellset_coordinates) {
+  
+  res <- c()
+  
+  for (cellset in cellset_coordinates) {
+    print(cellset)
+    res <- append(res, unname(get_cellset_cell_ids(cellsets, cellset[1], cellset[2])))
+  }
+  
+  res
+  
+}
+
 
 #' extract cellset from a seurat object
 #'
@@ -66,3 +92,4 @@ extract_cellset <- function(experiment_id, cellset_type, cellset_number) {
   cell_ids <- get_cellset_cell_ids(cellsets, cellset_type, cellset_number)
   pipeline::subset_ids(processed_matrix, cell_ids)
 }
+

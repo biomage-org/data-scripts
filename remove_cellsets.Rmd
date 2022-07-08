@@ -1,0 +1,86 @@
+---
+title: "Removing cellsets from experiment"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+source("utils.R")
+source("cellset_extraction.R")
+```
+
+Download data using `biomage experiment download -i production -e EXP ID --all`
+Set the `data_dir` var to point to the dir the experiment was downloaded to.
+
+```{r}
+
+data_dir <- "dir/to/downloaded/data"
+
+scdata <- readRDS(file.path(data_dir, "raw_r.rds"))
+cellsets <- jsonlite::read_json(file.path(data_dir, "cellsets.json"))
+```
+
+
+Create list of cellset coordinates to extract. Follow `get_cellset_cell_ids` docs
+for reference. In this example, we will remove louvain clusters (index 1) 13 and 14,
+
+```{r}
+cellsets_to_extract <- list(c(1,13), c(1,14))
+```
+
+Extract the cell_ids, and create the vector of cells to remove from the seurat object.
+But we need the cell_ids of cells to keep, so we subset the meta.data table, removing the
+cells to remove.
+
+```{r}
+cell_ids <- get_many_cellset_cell_ids(cellsets, cellsets_to_extract)
+cells_to_remove <- match(x, scdata@meta.data$cells_id)
+meta_data_subset <- scdata@meta.data[-cells_to_remove, ]
+
+```
+
+We subset the seurat object, using the pipeline function, removing the cells to remove.
+Then we add the sample names, reading the `sample_mapping.json` file, and split
+the seurat object using the new `sample_name` column, since we need to recreate the original
+samples, minus the removed cells.
+
+```{r}
+sub_scdata <- pipeline::subset_ids(scdata, meta_data_subset$cells_id)
+sub_scdata <- add_sample_names(sub_scdata, file.path(data_dir, "sample_mapping.json"))
+sub_scdata_list <- SplitObject(sub_scdata, split.by = "sample_name")
+```
+
+Now we extract the counts and create the features tibble (all feature files will be the same.
+Splitting a seurat object only separates cells. All genes are kept for all splits.)
+
+```{r}
+sub_scdata_counts <- lapply(sub_scdata_list, extract_counts)
+features <-
+  tibble(X1 = rownames(sub_scdata_list[[1]]),
+         X2 = extract_gene_symbols(sub_scdata_list[[1]]))
+
+tab <- list(counts = sub_scdata_counts,
+            sample = names(sub_scdata_counts))
+```
+
+
+We pass the table containing the counts and sample names, the `features` and the `data_dir`
+to the `call_writecounts` function, which will output 10x files to a newly created `out/`
+subdirectory inside the `data_dir.`
+
+```{r}
+tab %>% 
+  purrr::pwalk(call_writecounts, features = features,  data_dir = data_dir) 
+
+```
+

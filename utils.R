@@ -23,7 +23,6 @@ call_writecounts <- function(sample, counts, features, data_dir) {
 }
 
 
-
 read_10x_with_ac <- function(config, input_dir) {
   counts_list <- list()
   annot_list <- list()
@@ -141,3 +140,57 @@ download_processed_matrix <- function(experiment_id) {
   }
 }
 
+
+#' Extract counts from Seurat object
+#'
+#' @param seurat_obj SeuratObject
+#'
+#' @return
+#' @export
+#'
+extract_counts <- function(seurat_obj) {
+  seurat_obj@assays$RNA@counts
+  
+}
+
+
+#' Carefully extract names from gene_annotations
+#'
+#' Extracts gene names from the annotations data.frame taking care of matching
+#' the input column.
+#'
+#' @param seurat_obj SeuratObject
+#'
+#' @return
+#' @export
+#'
+extract_gene_symbols <- function(seurat_obj) {
+  idx <-
+    match(rownames(seurat_obj),
+          seurat_obj@misc$gene_annotations$input)
+  seurat_obj@misc$gene_annotations$name[idx]
+}
+
+#' add sample names to seurat object
+#'
+#' The seurat objects stored in S3 do not contain the sample names, which
+#' complicates processing user support requests. This function adds them using the
+#' sample_mapping.json file, which can be downloaded using `biomage experiment download`
+#'
+#' @param seurat_obj
+#' @param sample_mapping_json_path
+#'
+#' @return
+#' @export
+#'
+add_sample_names <- function(seurat_obj, sample_mapping_json) {
+  sample_map <- jsonlite::read_json(sample_mapping_json) %>%
+    tibble::enframe(x = ., name = "sample_name", value = "sample_id") %>%
+    tidyr::unnest(sample_id)
+  
+  sample_names <- seurat_obj@meta.data %>%
+    dplyr::left_join(sample_map, by = c("samples" = "sample_id")) %>%
+    dplyr::pull(sample_name)
+  
+  Seurat::AddMetaData(seurat_obj, sample_names, col.name = "sample_name")
+}
