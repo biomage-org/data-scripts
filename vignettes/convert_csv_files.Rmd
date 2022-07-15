@@ -1,0 +1,268 @@
+---
+title: "Converting csv/tsv files to upload to Cellenics"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font:
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(eval = F, message = F, warning = F)
+
+```
+
+# Introduction
+
+"Comma (or Tab) Separated Value" files (CSV or TSV) are a common file type used 
+for the storage of tabular data. In general it is not recommended to use them, 
+and there are better, more robust alternatives for storing and sharing biological
+data (such as H5 files), but they are very widely used and supported. 
+
+The main issue that concerns us, with respect to uploading your data to Cellenics,
+is that there is no well-defined standard as to how the single-cell RNA-seq information
+is represented. The genes and barcodes might be on rows or columns, the sample information
+could be represented in one file per sample (best case scenario) but it could be 
+encoded in many different ways (in the barcode name, in an extra column, etc). All of this
+requires careful examination of the input files, to decide what the processing should be,
+which could potentially involve some modification of the code presented in this document.
+
+We will make some generalizing assumptions:
+
+1. Genes are stored in rows
+2. Barcodes (cells) are stored in columns
+3. Sample information is encoded in the name of the barcode
+
+In case the sample assignment is not in the barcode (stored as different files 
+for example), leaving the `sample_regex` variable as `NULL` should be enough.
+
+# Libraries
+
+We need to have `data.table`, `DropletUtils` and the `Matrix` packages installed.
+[DropletUtils is available on Bioconductor](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html),
+while both `data.table` and `Matrix` are available on CRAN.
+
+
+```{r}
+library(data.table)
+library(DropletUtils)
+library(Matrix)
+```
+
+# Function definition
+
+These are the functions that will do the work for us, so we have to load them.
+
+```{r}
+#' clean original data.table CSV column names
+#' 
+#' Removes sample information from column names. It modifies in place!
+#'
+#' @param dt 
+#' @param sample_barcode_tab 
+#'
+clean_dt_colnames <- function(dt, clean_barcodes) {
+  setnames(dt, base::colnames(dt), clean_barcodes)
+}
+
+#' make sample <-> barcode table
+#'
+#' Extracts sample name from "sample_barcode" encoded column names in csv table. 
+#' Creates table with barcode - sample association.
+#' Users should manually check if the regex is correct for the particular dataset
+#' being demultiplexed.
+#'
+#' @param dt data.table original csv/tsv dataset
+#' @param sample_regex chr regex to parse column names for sample and barcodes
+#'
+#' @return data.table
+#'
+make_sample_barcode_tab <- function(dt, sample_regex = NA) {
+  samp_bc <- colnames(dt)
+
+  if (!is.na(sample_regex)) {
+    sample_names <- gsub(sample_regex, "\\1", samp_bc)
+    barcodes <- gsub(sample_regex, "\\2", samp_bc)
+    
+    clean_dt_colnames(dt, barcodes)
+  } else {
+    barcodes <- samp_bc
+    sample_names <- rep_len("single_sample", length(barcodes))
+  }
+  
+  # first var in dt is the gene_names var (data.tables don't have rownames)
+  data.table(
+    sample = sample_names[-1],
+    barcode = barcodes[-1]
+  )
+}
+
+
+#' Create list of barcodes in samples
+#'
+#' @param sample_barcode_tab data.table sample/barcode table
+#'
+#' @return list one element per sample, with every barcode in sample
+#'
+list_barcodes_in_sample <- function(sample_barcode_tab) {
+  # nest each barcode group to separate data.table
+  nested_sample_dt <- sample_barcode_tab[, .(bc_list = list(.SD)), by = sample]
+
+  # convert nested data table to list
+  lapply(nested_sample_dt[["bc_list"]], unlist)
+}
+
+
+#' subset data.table
+#'
+#' Subsets cleaned (clean_dt_colnames) data.table, provided character vector of 
+#' barcodes in sample. 
+#' Helper function to simplify lapply calls. 
+#'
+#' @param dt data.table cleaned count csv
+#' @param columns character vector 
+#'
+#' @return data.table subsetted data.table
+#'
+sub_dt <- function(columns, dt) {
+  # subset a data table by character vector, to ease lapply
+  columns <- c("V1", columns)
+  dt[, ..columns]
+}
+
+
+#' export demultiplexed data
+#' 
+#' exports  10X files in a folder per sample.
+#' 
+#' @param sample_dt data.table sample <-> barcode table
+#' @param sparse_matrix_list list of count matrices per sample
+#' @param data_dir chr root dir to export
+#'
+export_demultiplexed_data <- function(sample_dt, sparse_matrix_list, data_dir) {
+
+  nested_sample_dt <- sample_dt[, .(bc_list = list(.SD)), by = sample]
+  
+  for (row in 1:nrow(nested_sample_dt)) {
+    fname <- file.path(data_dir, "out", nested_sample_dt[row][["sample"]])
+
+    # unnest barcodes in sample
+    expected_barcodes_in_sample <- nested_sample_dt[row, bc_list[[1]]][["barcode"]]
+
+    if (!identical(expected_barcodes_in_sample, colnames(sparse_matrix_list[[row]]))) {
+      stop("not the same barcodes")
+    }
+
+    DropletUtils::write10xCounts(fname,
+      sparse_matrix_list[[row]],
+      version = "3"
+    )
+  }
+}
+```
+
+# Parameter definition
+
+## Files and Folders
+
+Set the data_dir to the folder that contains the CSV/TSV file or files. After that,
+we create a list of all CSV/TSV files in the directory, which will be
+converted. We will refer to them as CSV files, but this applies to both types. If they
+are compressed, you should uncompress them beforehand.
+
+After creating the list of csv/tsv files to process, we should manually checked if
+it contains the correct files by printing it.
+
+```{r}
+data_dir <- "./"
+setwd(data_dir)
+csv_files <- list.files(data_dir, pattern = "*[ct]sv$")
+
+print(csv_files)
+```
+
+Create an output directory, to store the converted files.
+
+```{r}
+output_dir <- file.path(data_dir, "out")
+dir.create(output_dir)
+```
+
+## Sample Information
+
+If the samples are encoded in the barcode names, you should write a regular expression
+(regex) that captures the sample name/id and the barcodes. For example, if the barcodes looked like 
+"sampleX_AAACTAGCTCGCGA" our regex should have two groups (surrounded by parentheses), and
+match "sampleX" and "AAACTAGCTCGCGA". 
+
+Explaining regex in depth is out of the scope of this document, but this should
+get you started:
+
+The example regex has two groups, separated by an underscore:
+1. The first group captures the sample ID: `(sample[[:digit:]]+)` captures the
+word "sample" folowed by any number "[[:digit:]]" repeated 1 or more times "+"
+
+2. The second group captures the barcode, which usually is the cDNA sequence, so using
+`([ACTG]+)` we match any of ACTG ("[ACTG]") that appears one or more times "+"
+
+3. Finally, we expect them to be separated by an underscore "_".
+
+
+```{r}
+sample_regex <- NA
+# example regex: "(sample[[:digit:]]+)_([ACGT]+)"
+```
+
+
+# Processing the files
+
+After we loaded our packages, sourced our functions and defined our parameters, it's
+time to actually process our files, by running the next block. 
+
+NOTE: Since CSV/TSV files can be pretty big, we have to be careful with the RAM
+usage, which is why there are some calls to the `rm()` function (to remove
+unnecessary objects) and `gc()` to force R's garbage collection.
+
+```{r}
+
+for (file in csv_files) {
+  csv_table <- fread(file)
+  setnames(csv_table, old = 1, new = "V1")
+  
+  sample_tab <- make_sample_barcode_tab(csv_table, sample_regex)
+  
+  gc()
+  # subset the original count data.table
+  dt_subset <-
+    lapply(list_barcodes_in_sample(sample_tab), sub_dt, csv_table)
+  rm(csv_table)
+  gc()
+  
+  dt_subset <- list(csv_table)
+  rm(csv_table)
+  gc()
+  
+  # convert each subsetted count data.table to count matrix
+  counts <- lapply(dt_subset, as.matrix, rownames = "V1")
+  rm(dt_subset)
+  gc()
+  
+  # convert each count matrix to sparse matrices
+  sparse_counts <- lapply(counts, Matrix, sparse = T)
+  rm(counts)
+  gc()
+  
+  export_demultiplexed_data(sample_tab, sparse_counts, data_dir)
+  
+}
+
+```
+
