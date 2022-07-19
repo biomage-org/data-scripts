@@ -196,6 +196,29 @@ output_dir <- file.path(data_dir, "out")
 dir.create(output_dir)
 ```
 
+## Manual inspection
+
+We should read in at least one of the csv files and take a look at them. We're
+especially interested in the column names, to see if they contain sample information.
+
+We can take a look at the output of some useful R functions, such as `str`, `colnames`
+
+```{r}
+csv_example <- fread(csv_files[1])
+
+# Look at the general structure of the matrix.
+str(csv_example)
+
+# print the column names, usually the barcodes
+colnames(csv_example)
+
+# print the first 20 rows of the first column (usually gene names)
+head(csv_example[, 1], 20)
+```
+
+Looking at the column names, we should be able to tell if there's sample information
+encoded, which will inform our decision in the next section.
+
 ## Sample Information
 
 If the samples are encoded in the barcode names, you should write a regular expression
@@ -240,16 +263,13 @@ for (file in csv_files) {
   sample_tab <- make_sample_barcode_tab(csv_table, sample_regex)
   
   gc()
-  # subset the original count data.table
+  
+  # subset the original count data.table, separating by samples if present
   dt_subset <-
     lapply(list_barcodes_in_sample(sample_tab), sub_dt, csv_table)
   rm(csv_table)
   gc()
-  
-  dt_subset <- list(csv_table)
-  rm(csv_table)
-  gc()
-  
+
   # convert each subsetted count data.table to count matrix
   counts <- lapply(dt_subset, as.matrix, rownames = "V1")
   rm(dt_subset)
@@ -260,9 +280,11 @@ for (file in csv_files) {
   rm(counts)
   gc()
   
+  # export the data to one folder per sample
   export_demultiplexed_data(sample_tab, sparse_counts, data_dir)
-  
 }
 
 ```
 
+After this, you should have an "out" folder containing all the samples in a format
+compatible with Cellenics!
