@@ -23,12 +23,13 @@ If this were to fail, refer to the Non-Standard HDF5 file section of this docume
 
 ## libraries
 
-We need to have Seurat and DropletUtils installed. 
-Seurat can be installed from CRAN, and [DropletUtils is available on Bioconductor](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html)
+We need to have Seurat, DropletUtils, and hdf5r installed. 
+Seurat and hdf5r can be installed from CRAN, and [DropletUtils is available on Bioconductor](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html)
 
 ```{r}
 library(Seurat)
 library(DropletUtils)
+library(hdf5r)
 ```
 
 ## processing
