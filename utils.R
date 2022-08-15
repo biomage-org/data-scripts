@@ -104,7 +104,7 @@ format_annot <- function(annot_list) {
 download_cellset_file <- function(experiment_id) {
   remote_path <-
     paste("s3:/",
-          "cell-sets-production",
+          "cell-sets-production-242905224710",
           experiment_id,
           sep = "/")
 
@@ -127,7 +127,7 @@ download_cellset_file <- function(experiment_id) {
 #' @export
 download_processed_matrix <- function(experiment_id) {
   remote_path <-
-    paste0(paste("s3:/", "processed-matrix-production",
+    paste0(paste("s3:/", "processed-matrix-production-242905224710",
                  experiment_id,
                  sep = "/"),
            "/")
