@@ -1,4 +1,5 @@
 library(fs)
+BIOMAGE_ACCOUNT_ID <- "242905224710"
 
 call_writecounts <- function(sample, counts, features, data_dir) {
     # write 10x files with some checks
@@ -102,7 +103,7 @@ format_annot <- function(annot_list) {
 #'
 #' @return NULL
 #' @export
-download_cellset_file <- function(experiment_id, account_id = "242905224710") {
+download_cellset_file <- function(experiment_id, account_id = BIOMAGE_ACCOUNT_ID) {
   remote_path <-
     file.path(
       "s3:/",
@@ -128,7 +129,7 @@ download_cellset_file <- function(experiment_id, account_id = "242905224710") {
 #'
 #' @return NULL
 #' @export
-download_processed_matrix <- function(experiment_id, account_id = "242905224710") {
+download_processed_matrix <- function(experiment_id, account_id = BIOMAGE_ACCOUNT_ID) {
   remote_path <-
     file.path(
       "s3:/",
