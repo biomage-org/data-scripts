@@ -44,7 +44,7 @@ cells to remove.
 
 ```{r}
 cell_ids <- get_many_cellset_cell_ids(cellsets, cellsets_to_extract)
-cells_to_remove <- match(x, scdata@meta.data$cells_id)
+cells_to_remove <- match(cell_ids, scdata@meta.data$cells_id)
 meta_data_subset <- scdata@meta.data[-cells_to_remove, ]
 
 ```

@@ -68,21 +68,24 @@ get_many_cellset_cell_ids <- function(cellsets, cellset_coordinates) {
 
 #' extract cellset from a seurat object
 #'
-#' Given experiment ID and cellset identifiers (type and number), this function
+#' Given experiment ID, account ID, and cellset identifiers (type and number), this function
 #' downloads the required files, subsets and returns the seurat object.
+#' 
+#' Account ID is set by default as "242905224710" in the download_cellset_file and download_processed_matrix functions
 #'
 #' @param experiment_id character experiment ID
 #' @param cellset_type int cellset type
 #' @param cellset_number int cellset number
+#' @param experiment_id character account ID
 #'
 #' @return subsetted seurat object
 #' @export
 #'
-extract_cellset <- function(experiment_id, cellset_type, cellset_number) {
+extract_cellset <- function(experiment_id, cellset_type, cellset_number, account_id) {
 
   # download stuff
-  download_cellset_file(experiment_id)
-  download_processed_matrix(experiment_id)
+  download_cellset_file(experiment_id, account_id)
+  download_processed_matrix(experiment_id, account_id)
 
   # load stuff
   cellsets <- jsonlite::read_json(file.path(experiment_id, "cellsets.json"))

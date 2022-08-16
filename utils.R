@@ -1,4 +1,5 @@
 library(fs)
+BIOMAGE_ACCOUNT_ID <- "242905224710"
 
 call_writecounts <- function(sample, counts, features, data_dir) {
     # write 10x files with some checks
@@ -98,15 +99,17 @@ format_annot <- function(annot_list) {
 #' Uses aws-cli to do so, which must be configured and working.
 #'
 #' @param experiment_id character
+#' @param account_id character
 #'
 #' @return NULL
 #' @export
-download_cellset_file <- function(experiment_id) {
+download_cellset_file <- function(experiment_id, account_id = BIOMAGE_ACCOUNT_ID) {
   remote_path <-
-    paste("s3:/",
-          "cell-sets-production",
-          experiment_id,
-          sep = "/")
+    file.path(
+      "s3:/",
+      paste0("cell-sets-production-", account_id),
+      experiment_id
+    )
 
   local_path <- file.path(experiment_id, "cellsets.json")
   args <- c("s3", "cp", remote_path, local_path)
@@ -122,15 +125,17 @@ download_cellset_file <- function(experiment_id) {
 #' Uses aws-cli to do so, which must be configured and working.
 #'
 #' @param experiment_id character
+#' @param account_id character
 #'
 #' @return NULL
 #' @export
-download_processed_matrix <- function(experiment_id) {
+download_processed_matrix <- function(experiment_id, account_id = BIOMAGE_ACCOUNT_ID) {
   remote_path <-
-    paste0(paste("s3:/", "processed-matrix-production",
-                 experiment_id,
-                 sep = "/"),
-           "/")
+    file.path(
+      "s3:/",
+      paste0("processed-matrix-production-", account_id),
+      experiment_id
+    )
   local_path <- experiment_id
 
   args <- c("s3", "cp", remote_path, local_path, "--recursive")
