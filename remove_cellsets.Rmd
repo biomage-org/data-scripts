@@ -32,7 +32,7 @@ cellsets <- jsonlite::read_json(file.path(data_dir, "cellsets.json"))
 
 
 Create list of cellset coordinates to extract. Follow `get_cellset_cell_ids` docs
-for reference. In this example, we will remove louvain clusters (index 1) 13 and 14,
+for reference. In this example, we will remove louvain clusters (index 1) 12 and 13,
 
 ```{r}
 cellsets_to_extract <- list(c(1,13), c(1,14))
