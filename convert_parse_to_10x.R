@@ -25,7 +25,7 @@ convert_parse_sample_to_10x <- function(sample_path,sample_out_path){
   Matrix::writeMM(Matrix::t(mtx), paste0(sample_out_path,"/matrix.mtx"))
 }
 
-samples <- list("Gut HO", "Gut NO", "Lung HO", "Lung NO")
+samples <- list.files()
 dir.create("./out")
 for (sample in samples){
   sample_path <- paste0("./",sample,"/DGE_filtered")
