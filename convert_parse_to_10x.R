@@ -26,11 +26,10 @@ convert_parse_sample_to_10x <- function(sample_path,sample_out_path){
 }
 
 samples <- list("Gut HO", "Gut NO", "Lung HO", "Lung NO")
-
+dir.create("./out")
 for (sample in samples){
   sample_path <- paste0("./",sample,"/DGE_filtered")
   out_path <- paste0("./out/",sample)
-  dir.create("./out")
   convert_parse_sample_to_10x(sample_path, out_path)
 }
 
