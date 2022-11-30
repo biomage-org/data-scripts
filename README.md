@@ -1,6 +1,8 @@
 # data-scripts
 Scripts to demultiplex or pre-process user data to get into Cellenics.
 
+**Note**: In order to use pipeline functions you need to run `renv::restore()`
+
 # Utils.R
 Contains utilities for the other functions.
 
