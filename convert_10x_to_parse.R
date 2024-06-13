@@ -26,7 +26,7 @@ for (sample in samples) {
   if (!dir_exists(out_path)) dir_create(out_path)
   
   # write Parse files
-  Matrix::writeMM(counts, path(out_path, "DGE.mtx"))
+  Matrix::writeMM(Matrix::t(counts), path(out_path, "DGE.mtx"))
   vroom::vroom_write(annotations, path(out_path, "all_genes.csv"), delim = ",")
   vroom::vroom_write(
     data.frame(bc_wells = colnames(counts), sample = sample),
