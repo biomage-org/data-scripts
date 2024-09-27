@@ -43,7 +43,7 @@ get_cellset_cell_ids <-
 #' Get the cell_ids for many cellsets
 #'
 #' The cellset coordinates follow the convention shown in get_cellset_cell_ids,
-#' so if you want the cell_ids of louvain clusters 13 and 14, you should input
+#' so if you want the cell_ids of louvain clusters 12 and 13, you should input
 #' list(c(1, 13), c(1,14)).
 #'
 #' @param cellsets list parsed json cellset object
