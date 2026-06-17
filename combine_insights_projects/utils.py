@@ -6,14 +6,14 @@ import boto3
 import psycopg2
 
 # ── Project UUIDs ─────────────────────────────────────────────────────────────
-SET_1_ID = "37a0acdc-0a23-4a3b-ac4b-c47908b9ce17"
-SET_2_ID = "722c3fbc-60f4-40f5-9d69-fdb0f3ca5421"
-NEW_PROJECT_ID = "bb32aafc-2b75-4630-981f-77b92b1c2e43"
+SET_1_ID = "b1322365-b917-4eda-b1e9-2964607efb58"
+SET_2_ID = "ae905b9b-c6c4-4ac8-9ecb-be81b3ffde80"
+NEW_PROJECT_ID = "3b55335c-6f2b-409a-b854-adea40067095"
 SOURCE_IDS = [SET_1_ID, SET_2_ID]
 
 # ── AWS / DB constants ────────────────────────────────────────────────────────
 REGION = "eu-west-1"
-BUCKET = "biomage-originals-staging-242905224710"
+BUCKET = "biomage-originals-production-242905224710"
 DB_NAME = "aurora_db"
 DB_USER = "dev_role"
 DB_PORT = 5432
