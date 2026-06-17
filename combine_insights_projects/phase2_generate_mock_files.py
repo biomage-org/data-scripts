@@ -36,7 +36,11 @@ MOCK_CELLS = "AAACCTGA,mock_sample\n"
 
 
 def load_samples(csv_path):
-    """Return a dict: experiment_id -> set of sample names (deduplicated per experiment)."""
+    """Return a dict: experiment_id -> set of unique sample names.
+
+    Each sample appears multiple times in the CSV (once per file type),
+    so a set is used to collapse duplicates within each experiment.
+    """
     samples = defaultdict(set)
     with open(csv_path) as f:
         for row in csv.DictReader(f):
