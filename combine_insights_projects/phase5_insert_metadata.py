@@ -20,22 +20,11 @@ Usage:
 """
 
 import argparse
-import csv
 import os
-from collections import defaultdict
 
-import boto3
-import psycopg2
 import psycopg2.extras
 
-NEW_PROJECT_ID = "3b55335c-6f2b-409a-b854-adea40067095"
-SET_1_ID       = "b1322365-b917-4eda-b1e9-2964607efb58"
-SET_2_ID       = "ae905b9b-c6c4-4ac8-9ecb-be81b3ffde80"
-
-DB_NAME = "aurora_db"
-DB_USER = "dev_role"
-DB_PORT = 5432
-REGION  = "eu-west-1"
+from utils import NEW_PROJECT_ID, SET_1_ID, get_connection, load_csv_map, load_manifest
 
 NEW_SAMPLES_QUERY = """
 SELECT id AS sample_id, name AS sample_name
@@ -43,40 +32,6 @@ FROM sample
 WHERE experiment_id = %s::uuid
 ORDER BY name;
 """
-
-
-def get_connection(env, sandbox_id, aws_profile):
-    session = boto3.Session(profile_name=aws_profile, region_name=REGION)
-    rds = session.client("rds")
-    response = rds.describe_db_cluster_endpoints(
-        DBClusterIdentifier=f"aurora-cluster-{env}-{sandbox_id}",
-        Filters=[{"Name": "db-cluster-endpoint-type", "Values": ["writer"]}],
-    )
-    endpoint = response["DBClusterEndpoints"][0]["Endpoint"]
-    token = rds.generate_db_auth_token(endpoint, DB_PORT, DB_USER, REGION)
-    return psycopg2.connect(
-        host="localhost", port=DB_PORT, dbname=DB_NAME,
-        user=DB_USER, password=token, sslmode="require",
-    )
-
-
-def load_metadata(path):
-    """Returns dict: (experiment_id, original_sample_name, track_key) -> value."""
-    data = {}
-    with open(path) as f:
-        for row in csv.DictReader(f):
-            key = (row["experiment_id"], row["sample_name"], row["metadata_track"])
-            data[key] = row["value"]
-    return data
-
-
-def load_manifest(path):
-    """Returns dict: final_sample_name -> (experiment_id, original_sample_name)."""
-    manifest = {}
-    with open(path) as f:
-        for row in csv.DictReader(f):
-            manifest[row["final_sample_name"]] = (row["experiment_id"], row["original_sample_name"])
-    return manifest
 
 
 def get_all_track_keys(metadata):
@@ -93,7 +48,7 @@ def main():
     args = parser.parse_args()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    metadata   = load_metadata(os.path.join(script_dir, "metadata.csv"))
+    metadata   = load_csv_map(os.path.join(script_dir, "metadata.csv"), ["experiment_id", "sample_name", "metadata_track"], "value")
     manifest   = load_manifest(os.path.join(script_dir, "sample_manifest.csv"))
     track_keys = get_all_track_keys(metadata)
 

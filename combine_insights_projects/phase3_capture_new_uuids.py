@@ -18,20 +18,12 @@ Output:
 """
 
 import argparse
-import csv
 import os
 from collections import defaultdict
 
-import boto3
-import psycopg2
 import psycopg2.extras
 
-NEW_PROJECT_ID = "3b55335c-6f2b-409a-b854-adea40067095"
-
-DB_NAME = "aurora_db"
-DB_USER = "dev_role"
-DB_PORT = 5432
-REGION  = "eu-west-1"
+from utils import NEW_PROJECT_ID, get_connection, load_csv_map, load_manifest, write_csv
 
 NEW_PROJECT_QUERY = """
 SELECT
@@ -46,31 +38,6 @@ ORDER BY s.name, sf.sample_file_type;
 """
 
 
-def get_connection(env, sandbox_id, aws_profile):
-    session = boto3.Session(profile_name=aws_profile, region_name=REGION)
-    rds = session.client("rds")
-    response = rds.describe_db_cluster_endpoints(
-        DBClusterIdentifier=f"aurora-cluster-{env}-{sandbox_id}",
-        Filters=[{"Name": "db-cluster-endpoint-type", "Values": ["writer"]}],
-    )
-    endpoint = response["DBClusterEndpoints"][0]["Endpoint"]
-    token = rds.generate_db_auth_token(endpoint, DB_PORT, DB_USER, REGION)
-    return psycopg2.connect(
-        host="localhost", port=DB_PORT, dbname=DB_NAME,
-        user=DB_USER, password=token, sslmode="require",
-    )
-
-
-def load_csv(path, key_fields, value_field):
-    """Load a CSV into a dict keyed by tuple(key_fields) -> value_field."""
-    result = {}
-    with open(path) as f:
-        for row in csv.DictReader(f):
-            key = tuple(row[k] for k in key_fields)
-            result[key] = row[value_field]
-    return result
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env",     default="production")
@@ -82,17 +49,14 @@ def main():
 
     # Load Phase 1 outputs
     # samples_and_files: (experiment_id, original_sample_name, file_type) -> src_s3_path
-    src_keys = load_csv(
+    src_keys = load_csv_map(
         os.path.join(script_dir, "samples_and_files.csv"),
         key_fields=["experiment_id", "sample_name", "sample_file_type"],
         value_field="s3_path",
     )
 
     # sample_manifest: final_sample_name -> (experiment_id, original_sample_name)
-    manifest = {}
-    with open(os.path.join(script_dir, "sample_manifest.csv")) as f:
-        for row in csv.DictReader(f):
-            manifest[row["final_sample_name"]] = (row["experiment_id"], row["original_sample_name"])
+    manifest = load_manifest(os.path.join(script_dir, "sample_manifest.csv"))
 
     # Query new project
     print("Querying new project for destination UUIDs...")
@@ -136,12 +100,7 @@ def main():
             print(m)
 
     out_path = os.path.join(script_dir, "copy_manifest.csv")
-    with open(out_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["final_sample_name", "sample_file_type", "src_s3_path", "dst_s3_path"])
-        writer.writeheader()
-        writer.writerows(manifest_rows)
-
-    print(f"Copy manifest written → {out_path}  ({len(manifest_rows)} entries)")
+    write_csv(out_path, manifest_rows, ["final_sample_name", "sample_file_type", "src_s3_path", "dst_s3_path"])
 
 
 if __name__ == "__main__":

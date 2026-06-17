@@ -17,22 +17,11 @@ Outputs (written to the same directory as this script):
 """
 
 import argparse
-import csv
 import os
 
-import boto3
-import psycopg2
 import psycopg2.extras
 
-PROJECT_IDS = [
-    "b1322365-b917-4eda-b1e9-2964607efb58",  # Set_1
-    "ae905b9b-c6c4-4ac8-9ecb-be81b3ffde80",  # Set_2
-]
-
-DB_NAME = "aurora_db"
-DB_USER = "dev_role"
-DB_PORT = 5432
-REGION  = "eu-west-1"
+from utils import SOURCE_IDS, get_connection, write_csv
 
 SAMPLES_QUERY = """
 SELECT
@@ -63,40 +52,6 @@ ORDER BY mt.experiment_id, s.name, mt.key;
 """
 
 
-def get_rds_endpoint(env, sandbox_id, aws_profile):
-    session = boto3.Session(profile_name=aws_profile, region_name=REGION)
-    rds = session.client("rds")
-    response = rds.describe_db_cluster_endpoints(
-        DBClusterIdentifier=f"aurora-cluster-{env}-{sandbox_id}",
-        Filters=[{"Name": "db-cluster-endpoint-type", "Values": ["writer"]}],
-    )
-    return response["DBClusterEndpoints"][0]["Endpoint"]
-
-
-def get_connection(env, sandbox_id, aws_profile):
-    print(f"Generating IAM token for {env}-{sandbox_id}...")
-    endpoint = get_rds_endpoint(env, sandbox_id, aws_profile)
-    session = boto3.Session(profile_name=aws_profile, region_name=REGION)
-    token = session.client("rds").generate_db_auth_token(endpoint, DB_PORT, DB_USER, REGION)
-    print("Token generated, connecting...")
-    return psycopg2.connect(
-        host="localhost",
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=token,
-        sslmode="require",
-    )
-
-
-def write_csv(path, rows, fieldnames):
-    with open(path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-    print(f"  Wrote {len(rows)} rows → {path}")
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env",     default="production")
@@ -109,7 +64,7 @@ def main():
 
     with conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         print("Querying samples and file keys...")
-        cur.execute(SAMPLES_QUERY, (PROJECT_IDS,))
+        cur.execute(SAMPLES_QUERY, (SOURCE_IDS,))
         samples = cur.fetchall()
         write_csv(
             os.path.join(out_dir, "samples_and_files.csv"),
@@ -118,7 +73,7 @@ def main():
         )
 
         print("Querying metadata tracks...")
-        cur.execute(METADATA_QUERY, (PROJECT_IDS,))
+        cur.execute(METADATA_QUERY, (SOURCE_IDS,))
         metadata = cur.fetchall()
         write_csv(
             os.path.join(out_dir, "metadata.csv"),

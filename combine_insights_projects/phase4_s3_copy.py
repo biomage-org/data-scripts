@@ -15,8 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import boto3
 
-BUCKET      = "biomage-originals-production-242905224710"
-REGION      = "eu-west-1"
+from utils import BUCKET, REGION
+
 MAX_WORKERS = 20
 
 

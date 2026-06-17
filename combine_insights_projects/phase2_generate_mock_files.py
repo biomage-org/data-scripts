@@ -20,8 +20,7 @@ import csv
 import os
 from collections import defaultdict
 
-SET_1_ID = "b1322365-b917-4eda-b1e9-2964607efb58"
-SET_2_ID = "ae905b9b-c6c4-4ac8-9ecb-be81b3ffde80"
+from utils import SET_1_ID, SET_2_ID
 
 # Minimal valid Parse mock file contents
 MOCK_MTX = """\
