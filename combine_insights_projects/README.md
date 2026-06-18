@@ -27,6 +27,9 @@ Outputs: `samples_and_files.csv`, `metadata.csv`
 ### Phase 2 — Create the new project (manual, Insights UI) (`phase2_generate_mock_files.py`)
 Create a new empty project named `SO12129_Miranda_Lab_Set_1_and_2_Combined`.
 Upload a minimal mock file triplet (`count_matrix.mtx`, `all_genes.csv`, `cell_metadata.csv`) for each sample, using the correct (possibly suffixed) sample names.
+
+> **Why mock files?** The UI is the only way to create samples and have the system assign the new S3 UUIDs that Phase 3 captures. Uploading the real count matrices through the UI would be very slow for this many samples. Instead, minimal format-valid mock files are uploaded to trigger UUID assignment; Phase 4 then overwrites those S3 paths with the real data via a server-side copy — instant and free since no data leaves S3.
+
 **Do not start the pipeline yet.**
 
 ### Phase 3 — Capture new UUIDs (`phase3_capture_new_uuids.py`)
