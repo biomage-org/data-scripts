@@ -75,7 +75,9 @@ def main():
                         print(f"INSERT metadata_track: experiment={NEW_PROJECT_ID}, key={track_key}")
                     else:
                         cur.execute(
-                            "INSERT INTO metadata_track (experiment_id, key) VALUES (%s::uuid, %s) RETURNING id;",
+                            """INSERT INTO metadata_track (experiment_id, key) VALUES (%s::uuid, %s)
+                               ON CONFLICT (experiment_id, key) DO UPDATE SET key = EXCLUDED.key
+                               RETURNING id;""",
                             (NEW_PROJECT_ID, track_key),
                         )
                     track_id = cur.fetchone()[0] if not args.dry_run else None
