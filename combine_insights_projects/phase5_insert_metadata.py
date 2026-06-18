@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import os
+import sys
 
 import psycopg2.extras
 
@@ -64,6 +65,15 @@ def main():
 
     print(f"Samples in new project: {len(new_samples)}")
 
+    only_in_db       = set(new_samples.keys()) - set(manifest.keys())
+    only_in_manifest = set(manifest.keys())    - set(new_samples.keys())
+    if only_in_db or only_in_manifest:
+        if only_in_db:
+            print(f"ERROR: {len(only_in_db)} sample(s) in DB but not in manifest: {sorted(only_in_db)}")
+        if only_in_manifest:
+            print(f"ERROR: {len(only_in_manifest)} sample(s) in manifest but not in DB: {sorted(only_in_manifest)}")
+        sys.exit(1)
+
     if args.dry_run:
         print("\n--- DRY RUN --- (no DB writes)\n")
 
@@ -85,10 +95,10 @@ def main():
                     rows_inserted = 0
                     for final_name, new_sample_id in new_samples.items():
                         if track_key == "Set":
-                            exp_id, _ = manifest.get(final_name, (None, None))
+                            exp_id, _ = manifest[final_name]
                             value = "Set_1" if exp_id == SET_1_ID else "Set_2"
                         else:
-                            exp_id, orig_name = manifest.get(final_name, (None, None))
+                            exp_id, orig_name = manifest[final_name]
                             value = metadata.get((exp_id, orig_name, track_key), "N.A.")
 
                         if args.dry_run:
